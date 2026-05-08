@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 💬 NexChat
 
 A real-time chat application built with Python Flask, Socket.IO, MySQL, and Vanilla JS.
@@ -88,3 +89,6 @@ Open http://localhost:5000 in your browser 🎉
 ---
 
 Built by [Your Name] — Portfolio Project
+=======
+# nexchat-app
+>>>>>>> aebd8b64980f56685b228cb17ed4228fcb4706c4
