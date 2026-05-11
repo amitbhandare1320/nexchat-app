@@ -5,3 +5,16 @@ __pycache__/
 *.db
 .DS_Store
 instance/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+terraform.tfvars
+
+# Keys - NEVER push these!
+*.pem
+*.key
+
+# Large files
+Terraform/.terraform/
