@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>{{ user.username }} — NexChat</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    :root{--bg:#0a0a0f;--surface:#12121a;--border:#1e1e2e;--accent:#7c3aed;--accent2:#06d6a0;--text:#e2e2f0;--muted:#6b6b8a;}
+    body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:48px 40px;width:100%;max-width:480px;text-align:center;}
+    .back-btn{display:inline-flex;align-items:center;gap:6px;color:var(--muted);text-decoration:none;font-size:14px;margin-bottom:32px;}
+    .back-btn:hover{color:var(--text);}
+    .avatar-big{width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:52px;margin:0 auto 20px;}
+    .username{font-size:28px;font-weight:800;margin-bottom:6px;}
+    .nexid{font-size:14px;color:var(--accent2);font-family:'Space Mono',monospace;margin-bottom:8px;}
+    .status{font-size:13px;margin-bottom:16px;}
+    .status.online{color:var(--accent2);}
+    .status.offline{color:var(--muted);}
+    .bio{color:var(--muted);font-size:14px;line-height:1.7;padding:16px;background:var(--bg);border-radius:10px;margin-bottom:24px;min-height:52px;}
+    .info-row{display:flex;justify-content:center;gap:32px;margin-bottom:28px;}
+    .info-item .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;}
+    .info-item .value{font-size:16px;font-weight:700;margin-top:4px;}
+    .btn{display:inline-block;padding:12px 28px;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;cursor:pointer;border:none;text-decoration:none;transition:0.2s;}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#9f1fff);color:#fff;}
+    .btn-danger{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:#f87171;}
+    .btn:hover{transform:translateY(-2px);}
+    .actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+    .msg{font-size:13px;margin-top:16px;padding:10px;border-radius:8px;display:none;}
+    .msg.success{background:rgba(6,214,160,0.1);color:var(--accent2);display:block;}
+    .msg.error{background:rgba(239,68,68,0.1);color:#f87171;display:block;}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <a href="/home" class="back-btn">← Back to Chat</a>
+
+    <div class="avatar-big">{{ user.avatar }}</div>
+    <div class="username">{{ user.username }}</div>
+    <div class="nexid">{{ user.nexchat_id }}</div>
+    <div class="status {% if user.is_online %}online{% else %}offline{% endif %}">
+      {% if user.is_online %}● Online{% else %}○ Offline{% endif %}
+    </div>
+
+    <div class="bio">{{ user.bio or 'No bio yet.' }}</div>
+
+    <div class="info-row">
+      <div class="info-item">
+        <div class="label">Member Since</div>
+        <div class="value">{{ user.created_at.strftime('%b %Y') }}</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Status</div>
+        <div class="value">{% if user.is_online %}🟢{% else %}⚫{% endif %}</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      {% if user.id == current_user.id %}
+        <a href="/settings" class="btn btn-primary">⚙️ Edit Profile</a>
+      {% elif is_friend %}
+        <button class="btn btn-primary" onclick="startChat({{ user.id }}, '{{ user.username }}', '{{ user.avatar }}')">💬 Message</button>
+        <button class="btn btn-danger" onclick="removeFriend({{ user.id }})">🗑️ Remove Friend</button>
+      {% else %}
+        <button class="btn btn-primary" onclick="addFriend()">➕ Add Friend</button>
+      {% endif %}
+    </div>
+
+    <div id="msg-box" class="msg"></div>
+  </div>
+
+  <script>
+    function startChat(userId, username, avatar) {
+      window.location = '/home';
+    }
+
+    function removeFriend(userId) {
+      if (!confirm('Remove this friend?')) return;
+      fetch(`/api/remove-friend/${userId}`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+          const box = document.getElementById('msg-box');
+          box.textContent = 'Friend removed.';
+          box.className = 'msg success';
+          setTimeout(() => window.location = '/home', 1500);
+        });
+    }
+
+    function addFriend() {
+      fetch('/api/add-friend', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ nexchat_id: '{{ user.nexchat_id }}' })
+      })
+      .then(r => r.json())
+      .then(data => {
+        const box = document.getElementById('msg-box');
+        if (data.error) { box.textContent = data.error; box.className = 'msg error'; }
+        else { box.textContent = '✅ Friend added! Redirecting...'; box.className = 'msg success'; setTimeout(() => window.location.reload(), 1500); }
+      });
+    }
+  </script>
+</body>
+</html>

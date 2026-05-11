@@ -1,0 +1,17 @@
+# ─────────────────────────────────────────
+# NexChat — Global Variables
+# ─────────────────────────────────────────
+
+app_name: nexchat
+app_dir: /opt/nexchat
+repo_url: https://github.com/amitbhandare1320/nexchat-app.git
+
+db_host: "localhost"
+db_port: "3306"
+db_name: nexchat
+db_username: nexchat
+db_password: "YourStrongPassword123!"
+
+secret_key: "nexchat-production-secret-key-2026"
+aws_region: ap-south-1
+s3_bucket: nexchat-uploads-8rk2tu

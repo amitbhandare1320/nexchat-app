@@ -1,0 +1,36 @@
+# ─────────────────────────────────────────
+# Role: Nginx — Install & Configure
+# ─────────────────────────────────────────
+
+- name: Install Nginx
+  apt:
+    name: nginx
+    state: present
+    update_cache: yes
+
+- name: Remove default nginx config
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+
+- name: Copy NexChat nginx config
+  template:
+    src: nexchat.conf.j2
+    dest: /etc/nginx/sites-available/nexchat
+    mode: '0644'
+
+- name: Enable NexChat nginx site
+  file:
+    src: /etc/nginx/sites-available/nexchat
+    dest: /etc/nginx/sites-enabled/nexchat
+    state: link
+
+- name: Test nginx config
+  command: nginx -t
+  changed_when: false
+
+- name: Start and enable Nginx
+  systemd:
+    name: nginx
+    state: restarted
+    enabled: yes

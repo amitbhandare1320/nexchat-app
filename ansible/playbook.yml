@@ -1,0 +1,50 @@
+# ─────────────────────────────────────────
+# NexChat — Main Ansible Playbook
+# ─────────────────────────────────────────
+
+---
+- name: Configure NexChat Server
+  hosts: nexchat_servers
+  become: yes
+  gather_facts: yes
+
+  pre_tasks:
+    - name: Update all packages
+      apt:
+        upgrade: dist
+        update_cache: yes
+      tags: update
+
+    - name: Install Python3 pip
+      apt:
+        name: python3-pip
+        state: present
+
+  roles:
+    - role: docker
+      tags: docker
+
+    - role: nginx
+      tags: nginx
+
+    - role: nexchat
+      tags: app
+
+  post_tasks:
+    - name: Show deployment info
+      debug:
+        msg:
+          - "✅ NexChat deployed successfully!"
+          - "🌐 App URL: http://{{ ansible_host }}"
+          - "🔀 ALB URL: http://nexchat-alb-357287913.ap-south-1.elb.amazonaws.com"
+
+    - name: Verify app is accessible
+      uri:
+        url: "http://127.0.0.1"
+        status_code: [200, 302]
+      register: app_check
+      ignore_errors: yes
+
+    - name: App health check result
+      debug:
+        msg: "App status: {{ app_check.status | default('not reachable yet') }}"

@@ -1,0 +1,66 @@
+# ─────────────────────────────────────────
+# Role: NexChat — Deploy Application
+# ─────────────────────────────────────────
+
+- name: Create app directory
+  file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: '0755'
+
+- name: Clone NexChat repo
+  git:
+    repo: "{{ repo_url }}"
+    dest: "{{ app_dir }}"
+    version: main
+    force: yes
+  become_user: ubuntu
+
+- name: Create .env file
+  template:
+    src: env.j2
+    dest: "{{ app_dir }}/.env"
+    owner: ubuntu
+    group: ubuntu
+    mode: '0600'
+
+- name: Create uploads directory
+  file:
+    path: "{{ app_dir }}/static/uploads"
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: '0755'
+
+- name: Pull latest Docker images
+  shell: docker compose pull
+  args:
+    chdir: "{{ app_dir }}"
+  become_user: ubuntu
+  ignore_errors: yes
+
+- name: Build and start NexChat with Docker Compose
+  shell: docker compose up -d --build
+  args:
+    chdir: "{{ app_dir }}"
+  become_user: ubuntu
+
+- name: Wait for app to be ready
+  wait_for:
+    port: 5000
+    host: 127.0.0.1
+    delay: 5
+    timeout: 60
+
+- name: Check app is running
+  shell: docker compose ps
+  args:
+    chdir: "{{ app_dir }}"
+  register: compose_status
+  become_user: ubuntu
+
+- name: Show app status
+  debug:
+    msg: "{{ compose_status.stdout }}"
