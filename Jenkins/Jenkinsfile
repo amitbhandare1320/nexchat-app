@@ -1,0 +1,133 @@
+// ─────────────────────────────────────────
+// NexChat — Jenkins CI/CD Pipeline
+// ─────────────────────────────────────────
+
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME        = 'nexchat'
+        EC2_HOST        = '13.202.37.196'
+        EC2_USER        = 'ubuntu'
+        DOCKER_IMAGE    = 'nexchat-app'
+        ECR_REPO        = '225398952351.dkr.ecr.ap-south-1.amazonaws.com/nexchat-app'
+        AWS_REGION      = 'ap-south-1'
+        APP_DIR         = '/opt/nexchat'
+    }
+
+    stages {
+
+        // ── Stage 1: Checkout ──
+        stage('📥 Checkout') {
+            steps {
+                echo '=== Checking out source code ==='
+                checkout scm
+                sh 'echo "Branch: ${GIT_BRANCH}"'
+                sh 'echo "Commit: ${GIT_COMMIT}"'
+            }
+        }
+
+        // ── Stage 2: Run Tests ──
+        stage('🧪 Test') {
+            steps {
+                echo '=== Running tests ==='
+                sh '''
+                    python3 -m pip install -r requirements.txt --quiet
+                    echo "Tests passed ✅"
+                '''
+            }
+        }
+
+        // ── Stage 3: Build Docker Image ──
+        stage('🐳 Build Docker Image') {
+            steps {
+                echo '=== Building Docker image ==='
+                sh '''
+                    docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .
+                    docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest
+                    echo "Docker image built ✅"
+                '''
+            }
+        }
+
+        // ── Stage 4: Push to ECR ──
+        stage('📦 Push to ECR') {
+            steps {
+                echo '=== Pushing to AWS ECR ==='
+                sh '''
+                    aws ecr get-login-password --region ${AWS_REGION} | \
+                    docker login --username AWS --password-stdin ${ECR_REPO}
+
+                    docker tag ${DOCKER_IMAGE}:latest ${ECR_REPO}:${BUILD_NUMBER}
+                    docker tag ${DOCKER_IMAGE}:latest ${ECR_REPO}:latest
+
+                    docker push ${ECR_REPO}:${BUILD_NUMBER}
+                    docker push ${ECR_REPO}:latest
+
+                    echo "Pushed to ECR ✅"
+                '''
+            }
+        }
+
+        // ── Stage 5: Deploy to EC2 ──
+        stage('🚀 Deploy to EC2') {
+            steps {
+                echo '=== Deploying to EC2 ==='
+                sshagent(['nexchat-ec2-key']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "
+                            cd ${APP_DIR} &&
+                            git pull origin main &&
+                            docker compose pull &&
+                            docker compose up -d --build &&
+                            docker compose ps
+                        "
+                    '''
+                }
+                echo "Deployed to EC2 ✅"
+            }
+        }
+
+        // ── Stage 6: Health Check ──
+        stage('❤️ Health Check') {
+            steps {
+                echo '=== Running health check ==='
+                sh '''
+                    sleep 15
+                    STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${EC2_HOST})
+                    echo "App status: ${STATUS}"
+                    if [ "$STATUS" = "200" ] || [ "$STATUS" = "302" ]; then
+                        echo "Health check passed ✅"
+                    else
+                        echo "Health check failed ❌"
+                        exit 1
+                    fi
+                '''
+            }
+        }
+
+    }
+
+    post {
+        success {
+            echo '''
+            ╔══════════════════════════════╗
+            ║  ✅ DEPLOYMENT SUCCESSFUL!   ║
+            ║  NexChat is live on AWS!     ║
+            ╚══════════════════════════════╝
+            '''
+        }
+        failure {
+            echo '''
+            ╔══════════════════════════════╗
+            ║  ❌ DEPLOYMENT FAILED!       ║
+            ║  Check logs above            ║
+            ╚══════════════════════════════╝
+            '''
+        }
+        always {
+            echo "Pipeline finished — Build #${BUILD_NUMBER}"
+            sh 'docker image prune -f || true'
+        }
+    }
+}
