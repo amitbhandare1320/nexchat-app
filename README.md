@@ -87,8 +87,3 @@ Open http://localhost:5000 in your browser 🎉
 - ✅ Clean dark UI
 
 ---
-
-Built by [Your Name] — Portfolio Project
-=======
-# nexchat-app
->>>>>>> aebd8b64980f56685b228cb17ed4228fcb4706c4
