@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nexchat-service
+  namespace: nexchat
+  labels:
+    app: nexchat-app
+spec:
+  selector:
+    app: nexchat-app
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 5000
+  type: LoadBalancer

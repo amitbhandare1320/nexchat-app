@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexchat-app
+  namespace: nexchat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nexchat-app
+  template:
+    metadata:
+      labels:
+        app: nexchat-app
+    spec:
+      containers:
+      - name: nexchat-app
+        image: 225398952351.dkr.ecr.ap-south-1.amazonaws.com/nexchat-app:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: SECRET_KEY
+          value: "nexchat-production-secret-key-2026"
+        - name: DB_HOST
+          value: "mysql-service"
+        - name: DB_PASSWORD
+          value: "nexchat1234"
+        - name: DB_PORT
+          value: "3306"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
